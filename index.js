@@ -2,6 +2,7 @@ const express = require('express');
 var cors = require('cors');
 const bodyParser = require('body-parser');
 const MongoClient = require('mongodb').MongoClient;
+const admin = require('firebase-admin');
 require('dotenv').config();
 
 const app = express();
@@ -10,10 +11,19 @@ app.use(express.json());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true, parameterLimit: 100000 }));
 
-const serviceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert({
+        "type": process.env.TYPE,
+        "project_id": process.env.PROJECT_ID,
+        "private_key_id": process.env.PRIVATE_KEY_ID,
+        "private_key": process.env.PRIVATE_KEY,
+        "client_email": process.env.CLIENT_EMAIL,
+        "client_id": process.env.CLIENT_ID,
+        "auth_uri": process.env.AUTH_URI,
+        "token_uri": process.env.TOKEN_URI,
+        "auth_provider_x509_cert_url": process.env.AUTH_PROVIDER,
+        "client_x509_cert_url": process.env.CLIENT_CERT_URL
+    }),
     databaseURL: "https://volunteer-network-own.firebaseio.com"
 });
 
@@ -62,6 +72,13 @@ client.connect(err => {
             res.status(401).send('unauthorized access');
         }
     });
+
+    const findVolunteerTask = (res, email) => {
+        volunteersDB.find({ 'data.username': email })
+            .toArray((err, works) => {
+                res.send(works);
+            })
+    };
 
 });
 
