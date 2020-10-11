@@ -2,8 +2,11 @@ const express = require('express');
 var cors = require('cors');
 const bodyParser = require('body-parser');
 const MongoClient = require('mongodb').MongoClient;
+const { cloudinary } = require('./utils/cloudinary');
 const admin = require('firebase-admin');
 require('dotenv').config();
+const ObjectId = require('mongodb').ObjectId;
+
 
 const app = express();
 app.use(cors());
@@ -79,6 +82,62 @@ client.connect(err => {
                 res.send(works);
             })
     };
+
+    app.post('/submitCreatedEvent', (req, res) => {
+        workDB.insertOne(req.body)
+            .then(result => {
+                res.status(200).send({ response: 'event added successfully' });
+            })
+    });
+
+    app.post('/submitImage', (req, res) => {
+        const imageString = req.body.data;
+        cloudinary.uploader.upload(imageString, {
+            upload_preset: 'mxxk2q4u'
+        }, (err, result) => {
+            res.send({ url: result.url });
+        })
+    });
+
+    app.get('/volunteersList', (req, res) => {
+
+        volunteersDB.find({})
+            .toArray((err, result) => {
+                let uniqueVolunteerUserName = [];
+                let uniqueVolunteer = [];
+                for (let i = 0; i < result.length; i++) {
+                    const des = uniqueVolunteerUserName.includes(result[i].data.username)
+                    if (!des) {
+                        uniqueVolunteer.push(result[i]);
+                        uniqueVolunteerUserName.push(result[i].data.username);
+                    }
+                }
+                res.send(uniqueVolunteer);
+            })
+    });
+
+    app.delete('/deleteVolunteer/:userName', (req, res) => {
+        const userName = req.params.userName;
+        volunteersDB.deleteMany({
+            'data.username': userName
+        })
+            .then(result => {
+                res.send(result.deletedCount > 0);
+            })
+    });
+
+    app.delete('/deleteTask/:id', (req, res) => {
+        const id = req.params.id;
+
+        volunteersDB.deleteOne({
+            _id: ObjectId(id)
+        })
+            .then(result => {
+                res.send(result.deletedCount > 0);
+            })
+
+    });
+
 
 });
 
